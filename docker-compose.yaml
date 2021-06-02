@@ -39,12 +39,15 @@
 version: '3'
 x-airflow-common:
   &airflow-common
-  image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.1.0}
+  build:
+    context: ./
+    dockerfile: ./docker/airflow/Dockerfile
+  image: airflow-server:0.1
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-    AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres/airflow
+    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres/airflow
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
     AIRFLOW__CORE__FERNET_KEY: ''
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
@@ -89,15 +92,16 @@ services:
 
   airflow-webserver:
     <<: *airflow-common
-    command: webserver
+    command: webserver --port=${AIRFLOW_PORT}
     ports:
-      - 8080:8080
+      - "${AIRFLOW_PORT}:${AIRFLOW_PORT}"
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "--fail", "http://localhost:${AIRFLOW_PORT}/health"]
       interval: 10s
       timeout: 10s
       retries: 5
     restart: always
+
 
   airflow-scheduler:
     <<: *airflow-common
@@ -135,9 +139,9 @@ services:
     <<: *airflow-common
     command: celery flower
     ports:
-      - 5555:5555
+      - "${FLOWER_PORT}:${FLOWER_PORT}"
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:5555/"]
+      test: ["CMD", "curl", "--fail", "http://localhost:${FLOWER_PORT}/"]
       interval: 10s
       timeout: 10s
       retries: 5
