@@ -20,3 +20,11 @@ train-mnist-cnn-ddp:
 # Lint
 lint:
 	tasks/lint.sh
+
+# Run Docker Compose
+run:
+	docker-compose up
+
+# Stop Docker Compose
+stop:
+	docker-compose down
